@@ -1,5 +1,6 @@
-import { getData, registerData,verificarCredenciales } from '../model/index.js'
+import { getUser, registerData,verificarCredenciales } from '../model/index.js'
 import jwt from "jsonwebtoken"
+import { JWT_SECRETA } from '../config/index.js';
 
 export const notFound = (req, res) => {
     
@@ -11,31 +12,26 @@ res.send("Hello World desde controller");
 };
 
 
-
-
-
-
-export const getUsuarios=async (req, res) => {
+export const getUsuarios = async (req, res) => {
   try {
-  
-    const Authorization = req.header("Authorization")
-    const token = Authorization.split("Bearer ")[1]
-    console.log(Authorization)
-    jwt.verify(token, "az_AZ")
-    const { email, id } = jwt.decode(token)
-    //await deleteEvento(id)
-    res.send(`El usuario ${email} ha eliminado el evento de id ${id}`)
-    //const result = await getData()
-    //res.json({result})
-    
-    
+      const usuarios = await getUser()
+      res.status(200).json({ usuarios })
   } catch (error) {
-    res.status(500).send(error.message)
+      res.status(500).json({
+          message: 'Error al obtener los usuarios',
+          error: error.message,
+      })
   }
-    
-    
-  }
+}
 
+    
+  
+
+
+
+    
+  
+  
   export const registroUsuarios=async (req, res) => {
     const usuario = {
       email: req.body.email,
@@ -61,28 +57,23 @@ export const getUsuarios=async (req, res) => {
 
   
   export const login=async (req, res) => {
-    const usuario = {
-      email: req.body.email,
-      password: req.body.password,
-      
-    };
-
-    console.log(usuario)
-   
     try {
-    console.log(usuario)
-    if (usuario.email === undefined || usuario.password === undefined) return res.status(400).json({ message: 'Datos incorrectos' })
-    console.log("paso1")
-    await verificarCredenciales(usuario)
-    console.log("paso2")
-    const token = jwt.sign( usuario.email , "az_AZ")
-    console.log(token)
-    res.send(token)
-    
-      
-    } catch (error) {
-      res.status(500).send(error.message);
-    }
+      const { email, password } = req.body
+      if (!email || !password) {
+          return res.status(400).json({
+              message: 'Campos requeridos faltantes',
+              error: 'Por favor, incluya email y password.',
+          })
+      }
+      const { user, token } = await verificarCredenciales(email, password)
+      res.status(200).json({ user, token })
+  } catch (error) {
+      console.error('Error al iniciar sesión:', error.message)
+      res.status(401).json({
+          message: 'Error al iniciar sesión',
+          error: error.message,
+      })
+  }
   
   }
 

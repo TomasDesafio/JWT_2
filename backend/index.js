@@ -1,18 +1,22 @@
 import express from "express";
-import dotenv from "dotenv";
+//import dotenv from "dotenv";
+import "dotenv/config"
 import cors from "cors";
 import router from "./routes/index.js";
 import morgan from "morgan";
-dotenv.config();
+//dotenv.config();
+
+
 
 
 const app = express();
 
-const port = process.env.PORT || 3000;
+const port = process.env.PORT_LH || 3000;
 
 app.use(express.json());
 app.use(cors());
 app.use(morgan('tiny'));
+
 
 
 

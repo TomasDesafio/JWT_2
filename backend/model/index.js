@@ -1,21 +1,27 @@
-import pool from "../config/index.js";
-import bcrypt from "bcryptjs";
-try {
-  await pool.query("SELECT NOW()");
-  console.log("Database connection successful");
-} catch (error) {
-  console.error("Database connection error:", error);
+import {pool} from "../config/index.js";
+import jwt from 'jsonwebtoken'
+import bcryptjs from "bcryptjs";
+import { JWT_SECRETA } from '../config/index.js'
+
+
+
+
+
+export const getUser = async () => {
+  try {
+      const SQLQuery = {
+          text: 'SELECT * FROM usuarios',
+          // text: 'SELECT * FROM usuarios WHERE ID = $1',
+          // values: [id],
+      }
+      const response = await pool.query(SQLQuery)
+      return response.rows
+  } catch (error) {
+      console.log('Error al obtener los usuarios: ', error.message)
+      throw error
+  }
 }
 
-export const getData = async () => {
-  try {
-    const { rows } = await pool.query("SELECT * FROM posts");
-
-    return rows;
-  } catch (error) {
-    return error.message;
-  }
-};
 
 export const registerData = async (usuario) => {
   let { email, password, rol, lenguage } = usuario;
@@ -35,7 +41,7 @@ export const registerData = async (usuario) => {
   }
 };
 
-export const verificarCredenciales = async (usuarios) => {
+/*export const verificarCredenciales = async (usuarios) => {
   let { email, password} = usuarios;
   const values = [email]
   const consulta = "SELECT * FROM usuarios WHERE email = $1"
@@ -46,7 +52,48 @@ export const verificarCredenciales = async (usuarios) => {
   console.log(passwordEsCorrecta)
   if (!passwordEsCorrecta || !rowCount)
   throw { code: 401, message: "Email o contraseña incorrecta" }
-  }
+  }*/
+
+  export const verificarCredenciales = async (email, password) => {
+    try {
+        console.log('Intentando autenticar al usuario:', email)
+        const SQLQuery = {
+            text: 'SELECT * FROM usuarios WHERE email = $1',
+            values: [email],
+        }
+        const response = await pool.query(SQLQuery)
+        const user = response.rows[0]
+
+        if (!user) {
+            console.log('Usuario no encontrado:', email)
+            throw new Error('Usuario no encontrado')
+        }
+
+        const isMatch = await bcryptjs.compare(password, user.password)
+
+        if (!isMatch) {
+            console.log('Contraseña incorrecta para el usuario:', email)
+            throw new Error('Contraseña incorrecta')
+        }
+
+        const token = jwt.sign(
+            {
+                id: user.id,
+                email: user.email,
+                rol: user.rol,
+            },
+            JWT_SECRETA,
+            { expiresIn: '1h' }
+        )
+        return {
+            user,
+            token,
+        }
+    } catch (error) {
+        console.log('Error en la autenticación: ', error.message)
+        throw new Error('Error en la autenticación')
+    }
+}
 
 
 
